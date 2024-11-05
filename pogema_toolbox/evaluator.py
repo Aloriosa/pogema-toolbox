@@ -33,14 +33,27 @@ def run_episode(env, algo):
     """
     algo.reset_states()
     results_holder = ResultsHolder()
-
+    # todo provide seed as a parameter
     obs, _ = env.reset(seed=env.grid_config.seed)
+    #print(f"toolbox run_episode env.grid_config = {env.grid_config}, env.grid_config.num_agents = {env.grid_config.num_agents}")
+    
+    #print(f"toolbox evaluator: obs {obs}\n env state {env.grid_config.observation_type},{env.grid.get_agents_xy_relative()}, {env.grid.get_targets_xy_relative()}, {env.grid.get_targets_xy()}")
+    #ii = 0
     while True:
-        obs, rew, terminated, truncated, infos = env.step(algo.act(obs))
+        #ii += 1
+        obs, rew, terminated, truncated, infos = env.step(algo.act(obs, custom_num_agents=env.grid_config.num_agents)[0])
         results_holder.after_step(infos)
+        #print(f"\nstep {ii} truncated {truncated}")
+        #print(f"toolbox run_episode env.grid_config = {env.print_max_episode_steps}, {env.grid_config.max_episode_steps}")
+    
+        #if ii == 2:
+        #    print(f"env.grid_config = {env.grid_config}")
+        #    break
 
         if all(terminated) or all(truncated):
+            print(f"terminated {all(terminated)}, truncated {all(truncated)}")
             break
+    #print('episode ended')
     return results_holder.get_final()
 
 
@@ -57,6 +70,7 @@ def sequential_backend(algo_config, env_configs, full_algo_name, registry_state=
     Returns:
         List: Results of running the algorithm on the environments.
     """
+    print(f'sequential backend env_configs = {env_configs}')
     registry = ToolboxRegistry
     if registry_state is not None:
         registry.recreate_from_state(registry_state)
@@ -67,9 +81,11 @@ def sequential_backend(algo_config, env_configs, full_algo_name, registry_state=
     algo_cfg = registry.create_algorithm_config(algo_name, **algo_config)
     for idx, env_config in enumerate(env_configs):
         ToolboxRegistry.info(f'Running: {full_algo_name} [{idx + 1}/{len(env_configs)}]')
-        env = registry.create_env(env_config['name'], **env_config)
+        print(f"evaluator env_config: {env_config}")
+        env = registry.create_env(env_config['name'], **env_config) # if 'name' in env_config else env_config['grid_config']['name']
+        #print(f"toolbox evaluator env.grid_config = {env.grid_config}")
         if algo_cfg.preprocessing:
-            ToolboxRegistry.debug('Adding preprocessing')
+            ToolboxRegistry.info('Adding preprocessing')
             env = registry.create_algorithm_preprocessing(env, algo_name, **algo_config)
         results.append(run_episode(env, algo))
 
@@ -199,7 +215,7 @@ def balanced_multiprocess_backend(algo_config, env_configs, full_algo_name):
     # Getting maps to initialize registry (if not) and  avoid multiple loading
     ToolboxRegistry.get_maps()
     registry_state = ToolboxRegistry.get_state()
-
+    
     with ProcessPoolExecutor(num_process) as executor:
         future2stuff = []
         for bucket in balanced_buckets:
@@ -275,7 +291,7 @@ def balanced_dask_backend(algo_config, env_configs, full_algo_name):
 
     ToolboxRegistry.get_maps()
     registry_state = ToolboxRegistry.get_state()
-
+    
     for bucket in balanced_buckets:
         bucket_configs = [env_configs[idx] for idx in bucket]
         future = client.submit(sequential_backend, algo_config, bucket_configs, full_algo_name, registry_state,
@@ -359,8 +375,8 @@ def evaluation(evaluation_config, eval_dir=None):
         List: Results of the evaluation.
     """
     env_grid_search, environment_configs = zip(*generate_variants(evaluation_config['environment']))
-
     results = []
+    #print(f" evaluator {environment_configs}")
     for key, algo_cfg in evaluation_config['algorithms'].items():
         p_algo_cfg = ToolboxRegistry.create_algorithm_config(algo_cfg['name'], **algo_cfg)
         ToolboxRegistry.info(f'Starting: {key}, {algo_cfg}')
@@ -377,6 +393,7 @@ def evaluation(evaluation_config, eval_dir=None):
             metrics = balanced_dask_backend(algo_cfg, environment_configs, key)
         else:
             raise ValueError(f'Unknown parallel backend: {p_algo_cfg.parallel_backend}')
+        #print(f"evaluator: metrics {metrics}")
         algo_results = join_metrics_and_configs(metrics, environment_configs, env_grid_search, algo_cfg, key)
         if eval_dir:
             save_path = Path(eval_dir) / f'{key}.json'

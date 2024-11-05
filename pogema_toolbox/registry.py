@@ -116,7 +116,7 @@ class ToolboxRegistry:
         if name in cls._envs:
             cls._logger.warning(f'Registering existing environment with name {name}')
         cls._envs[name] = make_func, config_make_func
-        cls.debug(f'Registered environment with name {name}')
+        cls.info(f'Registered environment with name {name}')
 
     @classmethod
     def create_env(cls, env_name, **kwargs):
@@ -124,7 +124,9 @@ class ToolboxRegistry:
 
         if config_make_func:
             cls.debug(f'Creating {env_name} env using config')
+            
             config = config_make_func(**kwargs)
+            #print(f"toolbox registry: env_make_func = {env_make_func}\nconfig = {config}\nconfig_make_func = {config_make_func}\nkwargs = {kwargs}")
             return env_make_func(config)
         cls.debug(f'Creating {env_name} env')
         return env_make_func()

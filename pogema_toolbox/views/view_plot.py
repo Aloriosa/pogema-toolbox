@@ -50,6 +50,7 @@ class PlotView(View):
 
     tight_layout: bool = True
     ticks: Optional[list] = None
+    ticklabels: Optional[list] = None
     remove_legend_title: bool = True
 
 
@@ -70,10 +71,10 @@ def process_plot_view(results, view: PlotView, save_path=None):
 
     fig, ax = plt.subplots()
     if x not in df.keys():
-        ToolboxRegistry.warning(f"Could not interpret value {x} for parameter 'x'. Skipping this plot.")
+        ToolboxRegistry.warning(f"Could not interpret value {x} for parameter 'x'. Skipping this plot df.keys {df.keys()}.")
         return
     if y not in df.keys():
-        ToolboxRegistry.warning(f"Could not interpret value {y} for parameter 'y'. Skipping this plot.")
+        ToolboxRegistry.warning(f"Could not interpret value {y} for parameter 'y'. Skipping this plot df.keys {df.keys()}.")
         return
 
     sns.lineplot(x=x, y=y, data=df, errorbar=view.error_bar, hue=hue, hue_order=view.hue_order,
@@ -102,6 +103,8 @@ def process_plot_view(results, view: PlotView, save_path=None):
 
     if view.ticks:
         ax.set_xticks(np.array(view.ticks))
+    if view.ticklabels:
+        ax.set_xticklabels(np.array(view.ticklabels), rotation=45)
 
     plt.plot()
 

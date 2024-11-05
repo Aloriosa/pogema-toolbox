@@ -57,6 +57,7 @@ class MultiMapWrapper(Wrapper):
 
 
 def create_env_base(config: Environment):
+    print(f"pogema_toolbox: create_env_base, config = {config}")
     env = pogema_v0(grid_config=config)
     env = ProvideGlobalObstacles(env)
     if config.use_maps:
