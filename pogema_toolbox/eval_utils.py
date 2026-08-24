@@ -14,7 +14,7 @@ def initialize_wandb(evaluation_config, eval_dir, disable_wandb, project_name):
 def save_evaluation_results(eval_dir):
     zip_path = f"{eval_dir}.zip"
     shutil.make_archive(str(eval_dir), 'zip', eval_dir)
-    wandb.save(str(zip_path), )
+    #wandb.save(str(zip_path), )
 
 
 def create_and_push_summary_archive(folder_names, base_path, project_name, archive_name='eval_summary'):
